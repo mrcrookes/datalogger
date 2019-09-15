@@ -1,3 +1,3 @@
 # datalogger
 
-# experiments in uploading sensor data directly to google sheets
+experiments in uploading sensor data directly to google sheets
