@@ -1,0 +1,57 @@
+import datetime
+import gspread
+from time import sleep
+from oauth2client.service_account import ServiceAccountCredentials
+import bme680
+
+# define sensor
+sensor = bme680.BME680()
+
+# These oversampling settings can be tweaked to 
+# change the balance between accuracy and noise in
+# the data.
+sensor.set_humidity_oversample(bme680.OS_2X)
+sensor.set_pressure_oversample(bme680.OS_4X)
+sensor.set_temperature_oversample(bme680.OS_8X)
+sensor.set_filter(bme680.FILTER_SIZE_3)
+
+# use creds to create a client to interact with the Google Drive API
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+#scope = ['https://spreadsheets.google.com/feeds']
+creds = ServiceAccountCredentials.from_json_keyfile_name('client_id.json', scope)
+client = gspread.authorize(creds)
+
+# find a workbook by name and open the first sheet
+sheet = client.open("Temperature_update").sheet1
+
+# define function to login again if needed and append info into new row
+def add_row(row):
+    if creds.access_token_expired:
+      client.login()  # refreshes the token
+    sheet.append_row(row, "USER_ENTERED") #USER_ENTERED tag allows sheets to recognise date
+
+
+while True:
+
+        # Find current date and time and convert into string
+        now = str(datetime.datetime.now())[:19]
+        
+        # Get readings from sensor
+        sensor.get_sensor_data()
+        
+        # Assign data to variables 
+        temp = sensor.data.temperature
+        pres = sensor.data.pressure
+        hum = sensor.data.humidity
+        
+        # Create list with values to be appended to sheet
+        row = [now, temp, pres, hum]
+        
+        # Call add_row function
+        add_row(row)
+        
+        # Print row to help with debugging
+        print(row)
+       
+        # Wait for approx 15 mins
+        sleep(1000)
